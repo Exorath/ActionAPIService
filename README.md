@@ -123,6 +123,7 @@ Executes an array of actions on the target
 }
 ```
 - subject (string): see [subject](#subject)
+- destination (string)[OPTIONAL]: see [Destination](#destination)
 - action (string): see [Spigot Actions](#spigot-actions) and [Bungeecord Actions](#bungeecord-actions)
 - meta (json object): Meta object specific to each type of action
 
