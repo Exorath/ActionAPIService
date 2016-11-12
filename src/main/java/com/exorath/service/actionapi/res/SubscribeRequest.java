@@ -14,22 +14,13 @@
  *    limitations under the License.
  */
 
-package com.exorath.service.actionapi;
-
-import com.google.gson.annotations.SerializedName;
+package com.exorath.service.actionapi.res;
 
 /**
- * Created by toonsev on 11/1/2016.
+ * Created by toonsev on 11/12/2016.
  */
-public class Success {
-    @SerializedName("success")
-    private Boolean success;
-
-    public Success(boolean success){
-        this.success = success;
-    }
-
-    public Boolean getSuccess() {
-        return success;
-    }
+public class SubscribeRequest {
+    private String spigotId;
+    private String bungeeId;
+    private String[] players;
 }
