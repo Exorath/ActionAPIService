@@ -109,3 +109,57 @@ Executes an array of actions on the target
   ]
 }
 ```
+
+##Endpoints
+###/action [POST]:
+####Publishes the action to all interested servers.
+**body**:
+```json
+{  "subject":"ffcc67a2-b114-4825-beea-63c4bdee2b21",
+   "action":"CHAT",
+   "meta":{
+      "lines":["Line one", "Line two"]
+   }
+}
+```
+- subject (string): see [subject](#subject)
+- action (string): see [Spigot Actions](#spigot-actions) and [Bungeecord Actions](#bungeecord-actions)
+- meta (json object): Meta object specific to each type of action
+
+
+**Response**: {"success": true}
+- success (boolean): Whether or not the action was published, this does not mean it was delivered/executed (for that it may be interesting to BATCH a callback that can be received through the [EventService](https://github.com/Exorath/EventsService)).
+- err (string)[OPTIONAL]: When an unexpected error occured (fe. database not accessable), this field contains the error message. Only present when success=true
+
+###/subscribe [WebSocket]:
+####Creates a websocket that streams action data.
+
+**Outbound Messages**:
+- subscribe (json): Subscribes the server to receive actions. Should be send whenever the player list changes and when the socket is opened.
+```json
+{
+  "subscribe": {
+    "spigotId": "f99c1559-1148-4304-8605-46a535b91b25",
+    "players": ["05b39a97-a9e4-4a17-8741-bedf13201f2f","b1579981-8da4-488e-a37c-eb0ed43bedd2"]
+  }
+}
+```
+- ping (number): Simple ping message to keep connection alive:
+```
+1478974707751
+```
+The number represents the time by which a new ping will should be expected, if no ping is received by this time, the connection can be closed.
+A 'pong' (see inboud) message should be responded immediately, if there's no response, the client may close the connection.
+
+
+**Inbound Messages**:
+- action (json): 
+```json
+{"subject": "7325bcc9-d15a-4d34-bdcc-d341c90b4e60", "action": "join", "meta": {"address": "play.exorath.com:25565"}}
+```
+The action without the destination field (obviously you are the destination for this action).
+
+- pong (json):
+```json
+{}
+```
