@@ -17,12 +17,50 @@
 package com.exorath.service.actionapi;
 
 import com.exorath.service.commons.portProvider.PortProvider;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.annotations.*;
+import spark.Request;
+import spark.Response;
+import spark.Route;
+
+import java.io.IOException;
+
+import static spark.Spark.port;
+import static spark.Spark.post;
+import static spark.Spark.webSocket;
 
 /**
  * Created by toonsev on 11/12/2016.
  */
 public class Transport {
+    private static Service service;
     public static void setup(Service service, PortProvider portProvider){
+        Transport.service = service;
+        port(portProvider.getPort());
+        webSocket("/subscribe", SubscribeWebSocket.class);
+        post("/action", getPublishActionRoute(service));
 
+    }
+
+    public static Route getPublishActionRoute(Service service){
+        return (req, res) -> "works";
+    }
+
+    @WebSocket
+    public static class SubscribeWebSocket {
+        @OnWebSocketConnect
+        public void onConnect(Session user) throws Exception {
+            System.out.println("connected");
+        }
+        @OnWebSocketClose
+        public void closed(Session session, int statusCode, String reason) {
+            System.out.println("closed");
+        }
+
+        @OnWebSocketMessage
+        public void message(Session session, String message) throws IOException {
+            System.out.println("Got: " + message);   // Print message
+            session.getRemote().sendString(message); // and send it back
+        }
     }
 }

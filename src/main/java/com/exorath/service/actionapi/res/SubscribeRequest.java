@@ -23,4 +23,22 @@ public class SubscribeRequest {
     private String spigotId;
     private String bungeeId;
     private String[] players;
+
+    public SubscribeRequest(String spigotId, String bungeeId, String[] players) {
+        this.spigotId = spigotId;
+        this.bungeeId = bungeeId;
+        this.players = players;
+    }
+
+    public String getSpigotId() {
+        return spigotId;
+    }
+
+    public String getBungeeId() {
+        return bungeeId;
+    }
+
+    public String[] getPlayers() {
+        return players;
+    }
 }
