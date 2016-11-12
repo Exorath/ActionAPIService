@@ -16,10 +16,29 @@
 
 package com.exorath.service.actionapi;
 
+import com.exorath.service.actionapi.res.Action;
+import com.exorath.service.actionapi.res.SubscribeRequest;
+import com.exorath.service.actionapi.res.Success;
+import io.reactivex.Observable;
+
 /**
  * See https://github.com/Exorath/LobbyMsgService for documentation
  * Created by toonsev on 11/1/2016.
  */
 public interface Service {
+
+    /**
+     * Subscribe to a stream of actions, with a stream of subscribeRequest. Completing this stream indicates the subscribtion should be terminated.
+     * @param inStream A stream of subscribeRequests, should receive an emit whenever a subscribe event is send to this service
+     * @return a stream of actions that are send to the destinations specified in the {@param inStream}.
+     */
+    Observable<Action> subscribe(Observable<SubscribeRequest> inStream);
+
+    /**
+     * Publishes an action to specified destination
+     * @param action the action to publish
+     * @return whether or not the action was successfully published, this does not mean delivered nor executed!
+     */
+    Success publishAction(Action action);
 
 }
