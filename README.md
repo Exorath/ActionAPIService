@@ -117,6 +117,7 @@ Executes an array of actions on the target
 ```json
 {  "subject":"ffcc67a2-b114-4825-beea-63c4bdee2b21",
    "action":"CHAT",
+   "type": "bungee",
    "meta":{
       "lines":["Line one", "Line two"]
    }
@@ -124,6 +125,7 @@ Executes an array of actions on the target
 ```
 - subject (string): see [subject](#subject)
 - destination (string)[OPTIONAL]: see [Destination](#destination)
+- type (string)[OPTIONAL]: either 'bungee' or 'spigot', according to what kind of server you want to send the action to. Defaults to 'spigot'. A BATCH will only be send to ONE type. You can't BATCH 'spigot'+'bungee', simply use two requests.
 - action (string): see [Spigot Actions](#spigot-actions) and [Bungeecord Actions](#bungeecord-actions)
 - meta (json object): Meta object specific to each type of action
 
@@ -140,7 +142,8 @@ Executes an array of actions on the target
 ```json
 {
   "subscribe": {
-    "spigotId": "f99c1559-1148-4304-8605-46a535b91b25",
+    "serverId": "f99c1559-1148-4304-8605-46a535b91b25",
+    "type": "bungee",
     "players": ["05b39a97-a9e4-4a17-8741-bedf13201f2f","b1579981-8da4-488e-a37c-eb0ed43bedd2"]
   }
 }
@@ -158,7 +161,7 @@ A 'pong' (see inboud) message should be responded immediately, if there's no res
 ```json
 {"subject": "7325bcc9-d15a-4d34-bdcc-d341c90b4e60", "action": "join", "meta": {"address": "play.exorath.com:25565"}}
 ```
-The action without the destination field (obviously you are the destination for this action).
+The action without the destination field and type field(obviously you are the destination and type for this action). Subject can be ALL/NONE or player uuid
 
 - pong (json):
 ```json
