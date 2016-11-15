@@ -31,6 +31,7 @@ package com.exorath.service.actionapi;/*
  */
 
 import com.exorath.service.actionapi.impl.RedisService;
+import com.exorath.service.commons.jedisProvider.JedisProvider;
 import com.exorath.service.commons.portProvider.PortProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class Main {
 
     private Main(){
         //Creates a new instance of the service, with the dynamodb implementation
-        this.svc = new RedisService();
+        this.svc = new RedisService(JedisProvider.getEnvironmentAzureStorageProvider());
         LOG.info("Service " + this.svc.getClass() + " instantiated");
         //Sets up the http transport
         Transport.setup(svc, PortProvider.getEnvironmentPortProvider());

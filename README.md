@@ -123,7 +123,7 @@ Executes an array of actions on the target
    }
 }
 ```
-- subject (string): see [subject](#subject)
+- subject (string)[OPTIONAL]: see [subject](#subject)
 - destination (string)[OPTIONAL]: see [Destination](#destination)
 - type (string)[OPTIONAL]: either 'bungee' or 'spigot', according to what kind of server you want to send the action to. Defaults to 'spigot'. A BATCH will only be send to ONE type. You can't BATCH 'spigot'+'bungee', simply use two requests.
 - action (string): see [Spigot Actions](#spigot-actions) and [Bungeecord Actions](#bungeecord-actions)

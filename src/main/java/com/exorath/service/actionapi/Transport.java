@@ -21,17 +21,16 @@ import com.exorath.service.actionapi.res.Action;
 import com.exorath.service.actionapi.res.SubscribeRequest;
 import com.exorath.service.commons.portProvider.PortProvider;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
-import org.eclipse.jetty.websocket.api.annotations.*;
 import spark.Route;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 import static spark.Spark.port;
 import static spark.Spark.post;
@@ -48,7 +47,7 @@ public class Transport {
         Transport.service = service;
         port(portProvider.getPort());
         webSocket("/subscribe", SubscribeWebSocket.class);
-        post("/action", getPublishActionRoute(service));
+        post("/action", getPublishActionRoute(service), GSON::toJson);
 
     }
 
@@ -61,6 +60,7 @@ public class Transport {
 
 
     public static class SubscribeWebSocket extends WebSocketAdapter implements Subscription {
+        private Long lastTimeout;
         private PublishSubject<SubscribeRequest> requestPublishSubject = PublishSubject.create();
 
         @Override
@@ -93,18 +93,66 @@ public class Transport {
         public void onWebSocketText(String message) {
             super.onWebSocketText(message);
             //Try and parse the websocket
+            if (handlePing(message))
+                return;
             try {
-                requestPublishSubject.onNext(GSON.fromJson(message, SubscribeRequest.class));
+                JsonObject messageObj = GSON.fromJson(message, JsonObject.class);
+                if (messageObj.has("subscribe")) {
+                    requestPublishSubject.onNext(GSON.fromJson(messageObj.get("subscribe"), SubscribeRequest.class));
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        //Handles the ping to keep the connection open (should be pinged within 300 seconds)
+        private boolean handlePing(String message) {
+            try {
+                setLastTimeout(Long.valueOf(message));
+                if(!closeIfTimeout()) {
+                    getRemote().sendString("{}");//send pong
+                    Observable.create(sub -> {
+                        sub.onNext(new Object());
+                        sub.onComplete();
+                    }).delay(getLastTimeout() - System.currentTimeMillis(), TimeUnit.MILLISECONDS).doOnNext(o ->
+                            closeIfTimeout()).subscribe();
+                }
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return true;
+            }
+        }
+
+        private synchronized void setLastTimeout(long timeout) {
+            this.lastTimeout = timeout;
+        }
+
+        private synchronized long getLastTimeout() {
+            return lastTimeout;
+        }
+
+        private synchronized boolean closeIfTimeout() {
+            long timeout = getLastTimeout() - System.currentTimeMillis();
+            System.out.println(timeout);
+            System.out.println("closed?");
+            if (timeout < 0) {
+                System.out.println("closed");
+                onWebSocketClose(408, "Connection timed out");
+                return true;
+            }
+            return false;
+        }
+
 
         @Override
         public void onWebSocketClose(int statusCode, String reason) {
+            requestPublishSubject.onComplete();//close all subscriptions
+            if (getSession() != null && getSession().isOpen())
+                getSession().close();
             super.onWebSocketClose(statusCode, reason);
-            //close all subscriptions
-            requestPublishSubject.onComplete();
         }
 
         @Override

@@ -22,29 +22,21 @@ import com.exorath.service.actionapi.res.SubscribeRequest;
 import com.exorath.service.actionapi.res.Success;
 import com.exorath.service.commons.jedisProvider.JedisProvider;
 import com.google.gson.Gson;
-import io.reactivex.Observable;
+import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisException;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * Created by toonsev on 11/12/2016.
  */
 public class RedisService implements Service {
-    private static final Set<String> bungeeActions = new HashSet() {
-        {
-            this.add("join");
-            this.add("chat");
-            this.add("kick");
-        }
-    };
+    private static final Logger LOG = LoggerFactory.getLogger(RedisService.class);
     private static final Gson GSON = new Gson();
 
     private JedisPool jedisPool;
@@ -57,107 +49,144 @@ public class RedisService implements Service {
     }
 
     @Override
+    public Success publishAction(Action action) {
+        System.out.println("pubing: " + GSON.toJson(action));
+        if (action.getAction() == null)
+            return new Success(false, "Tried to publish action without required 'action' string parameter.");
+        if (action.getMeta() == null)
+            return new Success(false, "Tried to publish action without required 'meta' jsonobject parameter.");
+        try {
+            String[] channels = getChannels(action);
+            action.setType(null);//Type not required on publish
+            action.setDestination(null);//destionation not required on publish
+            return publishToJedis(channels, action);
+        } catch (Exception e) {
+            return new Success(false, e.getMessage());
+        }
+    }
+
+    @Override
     public void subscribe(Subscription subscription) {
+        System.out.println("subing...");
         subscription.getSubscribeRequestStream().subscribe(subscribeRequest -> handleSubscription(subscription, subscribeRequest));
     }
 
     private void handleSubscription(Subscription subscription, SubscribeRequest subscribeRequest) {
-        String spigotId = subscribeRequest.getSpigotId();
-        String bungeeId = subscribeRequest.getBungeeId();
-        if (bungeeId == null && spigotId == null) {
-            System.err.println("A subscribe requyest was made without a bungeeId/spigotId");
+        System.out.println("Received sub: " + GSON.toJson(subscribeRequest));
+        String serverId = subscribeRequest.getServerId();
+        String type = subscribeRequest.getType();
+        if (serverId == null) {
+            LOG.error("No serverId was provided in subscribeRequest");
             return;
         }
-        if (bungeeId != null && spigotId != null) {
-            System.err.println("A subscribe requyest was made with both a bungeeId and a spigotId");
+        if (type == null) {
+            LOG.error("No 'type' was provided in subscribeRequest");
             return;
         }
-        boolean isSpigot = spigotId != null;
-        String serverId = isSpigot ? spigotId : bungeeId;
         String[] players = subscribeRequest.getPlayers();
-        handleSubscription(subscription, isSpigot, serverId, players);
+        handleSubscription(subscription, serverId, type, players);
     }
 
-    private synchronized void handleSubscription(Subscription subscription, boolean isSpigot, String serverId, String[] players) {
+    private synchronized void handleSubscription(Subscription subscription, String serverId, String type, String[] players) {
         Set<String> channels = new HashSet<>();
-        channels.add(getAllChannel(isSpigot));
-        channels.add(getServerChannel(isSpigot, serverId));
-        channels.addAll(Arrays.asList(getPlayersChannels(isSpigot, players)));
+        channels.add(getAllChannel(type));
+        channels.add(getServerChannel(type, serverId));
+        if (players != null)
+            channels.addAll(Arrays.asList(getPlayersChannels(type, players)));
+        System.out.println("channels: " + GSON.toJson(channels));
+        handleJedisSubscription(subscription, channels);
+    }
 
+    private synchronized void handleJedisSubscription(Subscription subscription, Collection<String> channels) {
         JedisPubSub jedisPubSub = pubSubBySubscription.get(subscription);
         if (jedisPubSub == null) {
             try {
                 Jedis jedis = jedisPool.getResource();
-                closeJedisWhenComplete(subscription, jedis);
-                pubSubBySubscription.put(subscription, subscribe(jedis, channels.toArray(new String[channels.size()])));
+                closeJedisWhenComplete(subscription);
+                pubSubBySubscription.put(subscription, subscribe(subscription, jedis, channels.toArray(new String[channels.size()])));
             } catch (JedisException e) {
+                LOG.error(e.getMessage());
                 e.printStackTrace();
             }
         } else
             jedisPubSub.subscribe(channels.toArray(new String[channels.size()]));
+
     }
 
-    private void closeJedisWhenComplete(Subscription subscription, Jedis jedis) {
-        subscription.getCompletable().subscribe(() -> jedis.close());
+    private void closeJedisWhenComplete(Subscription subscription) {
+        subscription.getCompletable().subscribe(() -> removeSubscription(subscription));
     }
 
-    private JedisPubSub subscribe(Jedis jedis, String[] channels) {
+    private synchronized void removeSubscription(Subscription subscription) {
+        Jedis jedis = jedisSubscriptionBySubscription.remove(subscription);
+        pubSubBySubscription.remove(subscription);
+        if (jedis != null)
+            jedis.close();
+    }
+
+    private JedisPubSub subscribe(Subscription subscription, Jedis jedis, String[] channels) {
         JedisPubSub jedisPubSub = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {//Message=> the action
-                super.onMessage(channel, message);
+                subscription.onAction(GSON.fromJson(message, Action.class));
             }
+
         };
         new Thread(() -> jedis.subscribe(jedisPubSub, channels)).start();
         return jedisPubSub;
     }
 
-    @Override
-    public Success publishAction(Action action) {
-        if (action.getAction)
-            String[] channels = getChannels(action);
+    private String[] getChannels(Action action) {
+        String actionType = action.getAction();
+        JsonObject meta = action.getMeta();
+        String subject = action.getSubject() == null ? "NONE" : action.getSubject();
+        String destination = action.getDestination() == null ? "SUBJECT" : action.getSubject();
+        String type = action.getType() == null ? "spigot" : action.getType();
+
+        if (destination.equals("SUBJECT")) {
+            if (subject.equals("ALL") || subject.equals("NONE"))
+                destination = "ALL";
+            else//subject is a list of players
+                return getPlayersChannels(type, subject.split(","));
+        }
+        if (destination.equals("ALL"))//Message will be send to every server of type
+            return new String[]{getAllChannel(type)};
+        else//This should be a list of uniqueIds
+            return getServersChannels(type, destination.split(","));
+    }
+
+    private Success publishToJedis(String[] channels, Action action) {
+        String actionJson = GSON.toJson(action);
         try (Jedis jedis = jedisPool.getResource()) {
             for (String channel : channels)
-                jedis.publish(channel, GSON.toJson(action));
+                jedis.publish(channel, actionJson);
         } catch (Exception e) {
-            return new Success(false, "Exception trying to publish action to redis");
+            return new Success(false, "Exception trying to publish action to redis.");
         }
         return new Success(true);
     }
 
-    private String[] getChannels(Action action) {
-        String actionJson = GSON.toJson(action);
-
-        String destination = action.getDestination();
-        boolean spigot = bungeeActions.contains(action.getAction());
-            if (destination == null || destination.equals("SUBJECT")) {
-                String subject = action.getSubject();
-                if(subject.equals("ALL"))
-            } else if (destination.equals("ALL")) {
-                return new String[] {getAllChannel(spigot)};
-            } else {//This should be a list of uniqueIds
-                String[] serverIds = destination.split(",");
-                String[] channels = new String[serverIds.length];
-                for(int i = 0; i < serverIds.length; i++)
-                    channels[i] = getServerChannel(spigot, serverIds[i]);
-                return channels;
-            }
-        }
+    private String getAllChannel(String type) {
+        return "servers." + type + ".ALL";
     }
 
-    private String getAllChannel(boolean spigot) {
-        return "servers." + (spigot ? "spigot" : "bungee") + ".ALL";
+    private String getServerChannel(String type, String serverId) {
+        return "servers." + type + "." + serverId;
     }
 
-    private String getServerChannel(boolean spigot, String serverId) {
-        return "servers." + (spigot ? "spigot" : "bungee") + "." + serverId;
-    }
-
-    private String[] getPlayersChannels(boolean spigot, String[] players) {
+    private String[] getPlayersChannels(String type, String[] players) {
         String[] channels = new String[players.length];
-        String prefix = "players." + (spigot ? "spigot" : "bungee") + ".";
+        String prefix = "players." + type + ".";
         for (int i = 0; i < players.length; i++)
-            results[i] = prefix + players[i];
+            channels[i] = prefix + players[i];
+        return channels;
+    }
+
+    private String[] getServersChannels(String type, String[] servers) {
+        String[] channels = new String[servers.length];
+        String prefix = "servers." + type + ".";
+        for (int i = 0; i < servers.length; i++)
+            channels[i] = prefix + servers[i];
         return channels;
     }
 }

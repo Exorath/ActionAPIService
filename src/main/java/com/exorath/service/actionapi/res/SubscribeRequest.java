@@ -20,22 +20,22 @@ package com.exorath.service.actionapi.res;
  * Created by toonsev on 11/12/2016.
  */
 public class SubscribeRequest {
-    private String spigotId;
-    private String bungeeId;
+    private String serverId;
+    private String type;
     private String[] players;
 
-    public SubscribeRequest(String spigotId, String bungeeId, String[] players) {
-        this.spigotId = spigotId;
-        this.bungeeId = bungeeId;
+    public SubscribeRequest(String serverId, String type, String[] players) {
+        this.serverId = serverId;
+        this.type = type;
         this.players = players;
     }
 
-    public String getSpigotId() {
-        return spigotId;
+    public String getServerId() {
+        return serverId;
     }
 
-    public String getBungeeId() {
-        return bungeeId;
+    public String getType() {
+        return type;
     }
 
     public String[] getPlayers() {

@@ -29,9 +29,6 @@ import io.reactivex.Observable;
 public interface Service {
 
     /**
-     * Subscribe to a stream of actions, with a stream of subscribeRequest. Completing this stream indicates the subscribtion should be terminated.
-     * @param inStream A stream of subscribeRequests, should receive an emit whenever a subscribe event is send to this service
-     * @return a stream of actions that are send to the destinations specified in the {@param inStream}.
      */
     void subscribe(Subscription subscription);
 

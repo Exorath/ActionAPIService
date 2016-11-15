@@ -24,6 +24,8 @@ import com.google.gson.JsonObject;
 public class Action {
     private String subject;
     private String destination;
+    //'spigot' or 'bungee'
+    private String type;
     private String action;
     private JsonObject meta;
 
@@ -46,7 +48,20 @@ public class Action {
         return action;
     }
 
+    public String getType() {
+        return type;
+    }
+
     public JsonObject getMeta() {
         return meta;
     }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
 }
