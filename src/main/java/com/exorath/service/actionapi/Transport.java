@@ -16,14 +16,22 @@
 
 package com.exorath.service.actionapi;
 
+import com.exorath.service.actionapi.impl.Subscription;
+import com.exorath.service.actionapi.res.Action;
+import com.exorath.service.actionapi.res.SubscribeRequest;
 import com.exorath.service.commons.portProvider.PortProvider;
+import com.google.gson.Gson;
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.PublishSubject;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.annotations.*;
-import spark.Request;
-import spark.Response;
 import spark.Route;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import static spark.Spark.port;
 import static spark.Spark.post;
@@ -33,8 +41,10 @@ import static spark.Spark.webSocket;
  * Created by toonsev on 11/12/2016.
  */
 public class Transport {
+    private static final Gson GSON = new Gson();
     private static Service service;
-    public static void setup(Service service, PortProvider portProvider){
+
+    public static void setup(Service service, PortProvider portProvider) {
         Transport.service = service;
         port(portProvider.getPort());
         webSocket("/subscribe", SubscribeWebSocket.class);
@@ -42,25 +52,66 @@ public class Transport {
 
     }
 
-    public static Route getPublishActionRoute(Service service){
-        return (req, res) -> "works";
+    public static Route getPublishActionRoute(Service service) {
+        return (req, res) -> {
+            Action action = GSON.fromJson(req.body(), Action.class);
+            return service.publishAction(action);
+        };
     }
 
-    @WebSocket
-    public static class SubscribeWebSocket {
-        @OnWebSocketConnect
-        public void onConnect(Session user) throws Exception {
-            System.out.println("connected");
-        }
-        @OnWebSocketClose
-        public void closed(Session session, int statusCode, String reason) {
-            System.out.println("closed");
+
+    public static class SubscribeWebSocket extends WebSocketAdapter implements Subscription {
+        private PublishSubject<SubscribeRequest> requestPublishSubject = PublishSubject.create();
+
+        @Override
+        public void onAction(Action action) {
+            try {
+                getRemote().sendString(GSON.toJson(action));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
-        @OnWebSocketMessage
-        public void message(Session session, String message) throws IOException {
-            System.out.println("Got: " + message);   // Print message
-            session.getRemote().sendString(message); // and send it back
+        @Override
+        public Observable<SubscribeRequest> getSubscribeRequestStream() {
+            return requestPublishSubject;
+        }
+
+        @Override
+        public Completable getCompletable() {
+            return Completable.fromObservable(requestPublishSubject);
+        }
+
+        @Override
+        public void onWebSocketConnect(Session sess) {
+            super.onWebSocketConnect(sess);
+            //whenever an action is received, propagate it to the websocket
+            service.subscribe(this);
+        }
+
+        @Override
+        public void onWebSocketText(String message) {
+            super.onWebSocketText(message);
+            //Try and parse the websocket
+            try {
+                requestPublishSubject.onNext(GSON.fromJson(message, SubscribeRequest.class));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onWebSocketClose(int statusCode, String reason) {
+            super.onWebSocketClose(statusCode, reason);
+            //close all subscriptions
+            requestPublishSubject.onComplete();
+        }
+
+        @Override
+        public void onWebSocketError(Throwable cause) {
+            //print a websocket error
+            super.onWebSocketError(cause);
+            cause.printStackTrace(System.err);
         }
     }
 }

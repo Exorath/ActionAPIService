@@ -16,6 +16,7 @@
 
 package com.exorath.service.actionapi;
 
+import com.exorath.service.actionapi.impl.Subscription;
 import com.exorath.service.actionapi.res.Action;
 import com.exorath.service.actionapi.res.SubscribeRequest;
 import com.exorath.service.actionapi.res.Success;
@@ -32,7 +33,7 @@ public interface Service {
      * @param inStream A stream of subscribeRequests, should receive an emit whenever a subscribe event is send to this service
      * @return a stream of actions that are send to the destinations specified in the {@param inStream}.
      */
-    Observable<Action> subscribe(Observable<SubscribeRequest> inStream);
+    void subscribe(Subscription subscription);
 
     /**
      * Publishes an action to specified destination

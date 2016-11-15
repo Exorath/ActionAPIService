@@ -30,7 +30,7 @@ package com.exorath.service.actionapi;/*
  *    limitations under the License.
  */
 
-import com.exorath.service.actionapi.impl.SimpleService;
+import com.exorath.service.actionapi.impl.RedisService;
 import com.exorath.service.commons.portProvider.PortProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +46,7 @@ public class Main {
 
     private Main(){
         //Creates a new instance of the service, with the dynamodb implementation
-        this.svc = new SimpleService();
+        this.svc = new RedisService();
         LOG.info("Service " + this.svc.getClass() + " instantiated");
         //Sets up the http transport
         Transport.setup(svc, PortProvider.getEnvironmentPortProvider());

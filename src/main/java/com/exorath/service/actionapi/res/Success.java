@@ -24,12 +24,22 @@ import com.google.gson.annotations.SerializedName;
 public class Success {
     @SerializedName("success")
     private Boolean success;
+    @SerializedName("err")
+    private String error;
 
     public Success(boolean success){
         this.success = success;
     }
+    public Success(boolean success, String error){
+        this(success);
+        this.error = error;
+    }
 
     public Boolean getSuccess() {
         return success;
+    }
+
+    public String getError() {
+        return error;
     }
 }

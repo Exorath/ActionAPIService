@@ -16,24 +16,17 @@
 
 package com.exorath.service.actionapi.impl;
 
-import com.exorath.service.actionapi.Service;
 import com.exorath.service.actionapi.res.Action;
 import com.exorath.service.actionapi.res.SubscribeRequest;
-import com.exorath.service.actionapi.res.Success;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 
 /**
- * Created by toonsev on 11/12/2016.
+ * Created by toonsev on 11/14/2016.
  */
-public class SimpleService implements Service{
+public interface Subscription {
+    void onAction(Action action);
 
-    @Override
-    public Observable<Action> subscribe(Observable<SubscribeRequest> inStream) {
-        return null;
-    }
-
-    @Override
-    public Success publishAction(Action action) {
-        return null;
-    }
+    Observable<SubscribeRequest> getSubscribeRequestStream();
+    Completable getCompletable();
 }
