@@ -1,4 +1,4 @@
-# ActionAPIService https://api.travis-ci.org/Exorath/ActionAPIService.svg?branch=master)](https://travis-ci.org/Exorath/ActionAPIService
+# ActionAPIService [![Build Status](https://travis-ci.org/Exorath/ActionAPIService.svg?branch=master)](https://travis-ci.org/Exorath/ActionAPIService)
 The ActionAPI service acts as a broker for the ActionAPI. Servers poll it for recent actions, and consume them.
 
 Services can send json formatted actions to the ActionAPIService, in the expectation that these actions will be executed on the appropriate bungee/spigot servers.
