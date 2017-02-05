@@ -1,0 +1,11 @@
+language: ruby
+sudo: required
+services:
+  - docker
+script:
+  - docker build -t exorath/actionapiservice .
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u=exorath -p="$DOCKER_PASSWORD";
+    docker push exorath/actionapiservice;
+    fi

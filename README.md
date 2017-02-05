@@ -167,3 +167,9 @@ The action without the destination field and type field(obviously you are the de
 ```json
 {}
 ```
+
+##Environment
+| Name | Value |
+| --------- | --- |
+| REDIS_URI | redis://:PASSWORD@HOST:PORT |
+| PORT	| 8080 |

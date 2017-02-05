@@ -1,0 +1,42 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "actionapiservice-controller",
+    "namespace": "services",
+    "labels": {
+      "state": "serving"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "app": "actionapiservice"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "actionapiservice"
+        }
+      },
+      "spec": {
+        "volumes": null,
+        "containers": [
+          {
+            "name": "actionapiservice",
+            "image": "exorath/actionapiservice",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}
