@@ -25,8 +25,27 @@ import io.reactivex.Observable;
  * Created by toonsev on 11/14/2016.
  */
 public interface Subscription {
+    /**
+     * This will be called whenever an action is send to this subscription
+     * @param action
+     */
     void onAction(Action action);
 
+    /**
+     * Returns a stream for when the client (this subscription) sends a subscriberequest
+     * @return
+     */
     Observable<SubscribeRequest> getSubscribeRequestStream();
+
+    /**
+     * When the client does no longer want to subscribe, it can complete this to close all connections (note that when onClose() is called this should be closed still).
+     * @return
+     */
     Completable getCompletable();
+
+    /**
+     * Called when the connection is terminated when no ping is received for example, this is useful for the API
+     * @param reason
+     */
+    default void onClose(String reason){};
 }

@@ -29,6 +29,7 @@ import io.reactivex.Observable;
 public interface Service {
 
     /**
+     * Subscribe to actions
      */
     void subscribe(Subscription subscription);
 
