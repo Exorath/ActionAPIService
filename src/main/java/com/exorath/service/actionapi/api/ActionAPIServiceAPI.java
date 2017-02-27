@@ -42,7 +42,7 @@ public class ActionAPIServiceAPI {
     /**
      * This subscription will automatically terminate if the server is no longer reachable. Make sure to implement a reconnection mechanism.
      */
-    void subscribe(Subscription subscription){
+    public void subscribe(Subscription subscription){
         Client client = new Client(subscription, URI.create(url("/subscribe")));
     }
 
