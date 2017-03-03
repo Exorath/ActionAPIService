@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class ActionAPIServiceAPI {
     private static Gson GSON = new Gson();
     private String address;
+    
     public ActionAPIServiceAPI(String address){
         this.address = address;
     }
@@ -44,6 +45,7 @@ public class ActionAPIServiceAPI {
      */
     public void subscribe(Subscription subscription){
         Client client = new Client(subscription, URI.create("ws://" + url("/subscribe")));
+        client.connect();
     }
 
     private class Client extends WebSocketClient {
@@ -54,10 +56,14 @@ public class ActionAPIServiceAPI {
         public Client(Subscription subscription, URI uri){
             super(uri);
             this.subscription = subscription;
-            subscription.getCompletable().subscribe(() -> {
+             subscription.getCompletable().subscribe(() -> {
                 this.close();
                 this.handleClose("The completable closed.");
             });
+        }
+
+        @Override
+        public void onOpen(ServerHandshake serverHandshake) {
             Schedulers.io().schedulePeriodicallyDirect(() -> {
                 long delay =  TimeUnit.SECONDS.toMillis(20);
                 long pingTime = System.currentTimeMillis();
@@ -71,11 +77,9 @@ public class ActionAPIServiceAPI {
                     }
                 }, delay, TimeUnit.MILLISECONDS);
             }, 0, 5, TimeUnit.MILLISECONDS);
-        }
 
-        @Override
-        public void onOpen(ServerHandshake serverHandshake) {
-
+            this.subscribeRequestStream = subscription.getSubscribeRequestStream()
+                    .subscribe(sr -> send(GSON.toJson(sr)));
         }
 
         @Override
