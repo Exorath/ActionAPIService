@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class ActionAPIServiceAPI {
     private static Gson GSON = new Gson();
     private String address;
-    
+
     public ActionAPIServiceAPI(String address){
         this.address = address;
     }
@@ -64,6 +64,7 @@ public class ActionAPIServiceAPI {
 
         @Override
         public void onOpen(ServerHandshake serverHandshake) {
+            System.out.println("ActionAPIService: A connection opened");
             Schedulers.io().schedulePeriodicallyDirect(() -> {
                 long delay =  TimeUnit.SECONDS.toMillis(20);
                 long pingTime = System.currentTimeMillis();
@@ -84,6 +85,7 @@ public class ActionAPIServiceAPI {
 
         @Override
         public void onMessage(String s) {
+            System.out.println("ActionAPIService: A connection received msg: " + s);
             if(s.equals("{}")){
                 this.lastPong = System.currentTimeMillis();
             }else {
@@ -94,17 +96,19 @@ public class ActionAPIServiceAPI {
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
+            System.out.println("ActionAPIService: A connection closed");
             this.handleClose(reason);
         }
 
         private void handleClose(String reason){
             subscribeRequestStream.dispose();
             subscription.onClose(reason);
+            System.out.println("ActionAPIService: A connection close was handled.");
 
         }
         @Override
         public void onError(Exception e) {
-
+            e.printStackTrace();
         }
     }
 
