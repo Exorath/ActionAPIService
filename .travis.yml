@@ -7,10 +7,10 @@ script:
     if [ "$TRAVIS_TAG" == "" ]; then
     version=latest;
     fi ;
-  docker build -t exorath/actionapiservice:${version} .
+    docker build -t exorath/actionapiservice:${version} .
 after_success:
   - if [ -n "$TRAVIS_TAG" ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     echo "version $TRAVIS_TAG" ;
     docker push "$REPO:$TRAVIS_TAG" ;
-    fi 
+    fi
