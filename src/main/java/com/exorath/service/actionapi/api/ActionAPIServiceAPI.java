@@ -44,8 +44,10 @@ public class ActionAPIServiceAPI {
      * This subscription will automatically terminate if the server is no longer reachable. Make sure to implement a reconnection mechanism.
      */
     public void subscribe(Subscription subscription){
+        System.out.println("subscribing...");
         Client client = new Client(subscription, URI.create("ws://" + url("/subscribe")));
         client.connect();
+        System.out.println("Subscribed to: " + client.getConnection().getRemoteSocketAddress().toString());
     }
 
     private class Client extends WebSocketClient {
@@ -60,6 +62,7 @@ public class ActionAPIServiceAPI {
                 this.close();
                 this.handleClose("The completable closed.");
             });
+            System.out.println("Client initialized.");
         }
 
         @Override
