@@ -111,7 +111,7 @@ public class ActionAPIServiceAPI {
      */
     public Success publishAction(Action action){
         try {
-            HttpRequestWithBody req = Unirest.post(url("/action"));
+            HttpRequestWithBody req = Unirest.post("http://" + url("/action"));
             req.body(GSON.toJson(action));
             return GSON.fromJson(req.asString().getBody(), Success.class);
         }catch (Exception e){
