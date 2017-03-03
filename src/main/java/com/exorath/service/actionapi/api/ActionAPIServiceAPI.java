@@ -47,7 +47,6 @@ public class ActionAPIServiceAPI {
         System.out.println("subscribing...");
         Client client = new Client(subscription, URI.create("ws://" + url("/subscribe")));
         client.connect();
-        System.out.println("Subscribed to: " + client.getConnection().getRemoteSocketAddress().toString());
     }
 
     private class Client extends WebSocketClient {
