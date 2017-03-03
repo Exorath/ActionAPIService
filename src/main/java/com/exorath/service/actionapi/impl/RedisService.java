@@ -140,7 +140,7 @@ public class RedisService implements Service {
         String actionType = action.getAction();
         JsonObject meta = action.getMeta();
         String subject = action.getSubject() == null ? "NONE" : action.getSubject();
-        String destination = action.getDestination() == null ? "SUBJECT" : action.getSubject();
+        String destination = action.getDestination() == null ? "SUBJECT" : action.getDestination();
         String type = action.getType() == null ? "spigot" : action.getType();
 
         if (destination.equals("SUBJECT")) {
