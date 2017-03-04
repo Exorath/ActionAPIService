@@ -46,7 +46,16 @@ public class ActionAPIServiceAPI {
     public void subscribe(Subscription subscription){
         System.out.println("subscribing...");
         Client client = new Client(subscription, URI.create("ws://" + url("/subscribe")));
-        client.connect();
+        System.out.println("subbed.");
+        try {
+            boolean  connected = client.connectBlocking();
+            System.out.println("connected: " + connected);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.out.println("An error occured while connecting to actionAPI ws, shutting down..");
+            System.exit(1);
+        }
+
     }
 
     private class Client extends WebSocketClient {
