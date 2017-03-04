@@ -89,7 +89,7 @@ public class ActionAPIServiceAPI {
                         this.handleClose("No pong received.");
                     }
                 }, delay, TimeUnit.MILLISECONDS);
-            }, 0, 5, TimeUnit.MILLISECONDS);
+            }, 0, 5, TimeUnit.SECONDS);
 
             this.subscribeRequestStream = subscription.getSubscribeRequestStream()
                     .subscribe(sr -> send(GSON.toJson(sr)));
