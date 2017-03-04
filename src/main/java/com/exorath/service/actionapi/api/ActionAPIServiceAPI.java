@@ -94,7 +94,11 @@ public class ActionAPIServiceAPI {
             }, 0, 5, TimeUnit.SECONDS);
 
             this.subscribeRequestStream = subscription.getSubscribeRequestStream()
-                    .subscribe(sr -> send(GSON.toJson(new SubscribeMsg(sr))));
+                    .subscribe(sr -> {
+                        System.out.println("sending " + GSON.toJson(sr));
+                        send(GSON.toJson(new SubscribeMsg(sr)));
+                        System.out.println("Send.");
+                    });
         }
 
         @Override

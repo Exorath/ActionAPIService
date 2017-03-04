@@ -27,14 +27,14 @@ import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.api.annotations.*;
 import spark.Route;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
-import static spark.Spark.port;
-import static spark.Spark.post;
-import static spark.Spark.webSocket;
+import static spark.Spark.*;
 
 /**
  * Created by toonsev on 11/12/2016.
@@ -48,6 +48,7 @@ public class Transport {
         port(portProvider.getPort());
         webSocket("/subscribe", SubscribeWebSocket.class);
         post("/action", getPublishActionRoute(service), GSON::toJson);
+        init();
 
     }
 
@@ -58,15 +59,64 @@ public class Transport {
         };
     }
 
+    @WebSocket
+    public static class SubscribeWebSocket {
+        private HashMap<Session, SubscriptionImpl> subscriptions = new HashMap<>();
 
-    public static class SubscribeWebSocket extends WebSocketAdapter implements Subscription {
+        @OnWebSocketConnect
+        public void onWebSocketConnect(Session session) {
+            SubscriptionImpl subscription = new SubscriptionImpl(session);
+            subscriptions.put(session, subscription);
+            //whenever an action is received, propagate it to the websocket
+            service.subscribe(subscription);
+        }
+
+        @OnWebSocketMessage
+        public void onWebSocketText(Session session, String message) {
+            System.out.println(session.getRemoteAddress().toString());
+            //Try and parse the websocket
+            if (subscriptions.get(session).handlePing(message))
+                return;
+            try {
+                JsonObject messageObj = GSON.fromJson(message, JsonObject.class);
+                if (messageObj.has("subscribe")) {
+                    subscriptions.get(session).requestPublishSubject.onNext(GSON.fromJson(messageObj.get("subscribe"), SubscribeRequest.class));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @OnWebSocketClose
+        public void onWebSocketClose(Session session, int statusCode, String reason) {
+            subscriptions.get(session).requestPublishSubject.onComplete();//close all subscriptions
+            if (session != null && session.isOpen())
+                session.close();
+            subscriptions.remove(session);
+            System.out.println("session removed");
+        }
+
+        @OnWebSocketError
+        public void onWebSocketError(Throwable cause) {
+            //print a websocket error
+            cause.printStackTrace(System.err);
+        }
+    }
+
+    private static class SubscriptionImpl implements Subscription {
         private Long lastTimeout;
         private PublishSubject<SubscribeRequest> requestPublishSubject = PublishSubject.create();
+        private Session session;
+
+        public SubscriptionImpl(Session session) {
+            this.session = session;
+        }
 
         @Override
         public void onAction(Action action) {
             try {
-                getRemote().sendString(GSON.toJson(action));
+                session.getRemote().sendString(GSON.toJson(action));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -82,35 +132,13 @@ public class Transport {
             return Completable.fromObservable(requestPublishSubject);
         }
 
-        @Override
-        public void onWebSocketConnect(Session sess) {
-            super.onWebSocketConnect(sess);
-            //whenever an action is received, propagate it to the websocket
-            service.subscribe(this);
-        }
 
-        @Override
-        public void onWebSocketText(String message) {
-            super.onWebSocketText(message);
-            //Try and parse the websocket
-            if (handlePing(message))
-                return;
-            try {
-                JsonObject messageObj = GSON.fromJson(message, JsonObject.class);
-                if (messageObj.has("subscribe")) {
-                    requestPublishSubject.onNext(GSON.fromJson(messageObj.get("subscribe"), SubscribeRequest.class));
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         //Handles the ping to keep the connection open (should be pinged within 300 seconds)
-        private boolean handlePing(String message) {
+        public boolean handlePing(String message) {
             try {
                 setLastTimeout(Long.valueOf(message));
-                if(!closeIfTimeout()) {
-                    getRemote().sendString("{}");//send pong
+                if (!closeIfTimeout()) {
+                    session.getRemote().sendString("{}");//send pong
                     Observable.create(sub -> {
                         sub.onNext(new Object());
                         sub.onComplete();
@@ -140,26 +168,10 @@ public class Transport {
             System.out.println("closed?");
             if (timeout < 0) {
                 System.out.println("closed");
-                onWebSocketClose(408, "Connection timed out");
+                session.close();
                 return true;
             }
             return false;
-        }
-
-
-        @Override
-        public void onWebSocketClose(int statusCode, String reason) {
-            requestPublishSubject.onComplete();//close all subscriptions
-            if (getSession() != null && getSession().isOpen())
-                getSession().close();
-            super.onWebSocketClose(statusCode, reason);
-        }
-
-        @Override
-        public void onWebSocketError(Throwable cause) {
-            //print a websocket error
-            super.onWebSocketError(cause);
-            cause.printStackTrace(System.err);
         }
     }
 }

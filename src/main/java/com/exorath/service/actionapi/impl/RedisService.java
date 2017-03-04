@@ -68,9 +68,11 @@ public class RedisService implements Service {
     public void subscribe(Subscription subscription) {
         System.out.println("subing...");
         subscription.getSubscribeRequestStream().subscribe(subscribeRequest -> handleSubscription(subscription, subscribeRequest));
+
     }
 
     private void handleSubscription(Subscription subscription, SubscribeRequest subscribeRequest) {
+        System.out.println("handled");
         System.out.println("Received sub: " + GSON.toJson(subscribeRequest));
         String serverId = subscribeRequest.getServerId();
         String type = subscribeRequest.getType();
