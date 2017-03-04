@@ -38,18 +38,19 @@ public class ActionAPIServiceAPI {
     private static Gson GSON = new Gson();
     private String address;
 
-    public ActionAPIServiceAPI(String address){
+    public ActionAPIServiceAPI(String address) {
         this.address = address;
     }
+
     /**
      * This subscription will automatically terminate if the server is no longer reachable. Make sure to implement a reconnection mechanism.
      */
-    public void subscribe(Subscription subscription){
+    public void subscribe(Subscription subscription) {
         System.out.println("subscribing...");
         Client client = new Client(subscription, URI.create("ws://" + url("/subscribe")));
         System.out.println("subbed.");
         try {
-            boolean  connected = client.connectBlocking();
+            boolean connected = client.connectBlocking();
             System.out.println("connected: " + connected);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -64,10 +65,11 @@ public class ActionAPIServiceAPI {
         private Disposable subscribeRequestStream;
         private long nextPing;
         private long lastPong;
-        public Client(Subscription subscription, URI uri){
+
+        public Client(Subscription subscription, URI uri) {
             super(uri, new Draft_17());
             this.subscription = subscription;
-             subscription.getCompletable().subscribe(() -> {
+            subscription.getCompletable().subscribe(() -> {
                 this.close();
                 this.handleClose("The completable closed.");
             });
@@ -78,13 +80,13 @@ public class ActionAPIServiceAPI {
         public void onOpen(ServerHandshake serverHandshake) {
             System.out.println("ActionAPIService: A connection opened");
             Schedulers.io().schedulePeriodicallyDirect(() -> {
-                long delay =  TimeUnit.SECONDS.toMillis(20);
+                long delay = TimeUnit.SECONDS.toMillis(20);
                 long pingTime = System.currentTimeMillis();
                 this.nextPing = pingTime + delay;
                 send(String.valueOf(nextPing));
 
                 Schedulers.io().scheduleDirect(() -> {
-                    if(lastPong < pingTime ){
+                    if (lastPong < pingTime) {
                         this.close();
                         this.handleClose("No pong received.");
                     }
@@ -92,15 +94,15 @@ public class ActionAPIServiceAPI {
             }, 0, 5, TimeUnit.SECONDS);
 
             this.subscribeRequestStream = subscription.getSubscribeRequestStream()
-                    .subscribe(sr -> send(GSON.toJson(sr)));
+                    .subscribe(sr -> send(GSON.toJson(new SubscribeMsg(sr))));
         }
 
         @Override
         public void onMessage(String s) {
             System.out.println("ActionAPIService: A connection received msg: " + s);
-            if(s.equals("{}")){
+            if (s.equals("{}")) {
                 this.lastPong = System.currentTimeMillis();
-            }else {
+            } else {
                 Action action = GSON.fromJson(s, Action.class);
                 subscription.onAction(action);
             }
@@ -112,12 +114,13 @@ public class ActionAPIServiceAPI {
             this.handleClose(reason);
         }
 
-        private void handleClose(String reason){
+        private void handleClose(String reason) {
             subscribeRequestStream.dispose();
             subscription.onClose(reason);
             System.out.println("ActionAPIService: A connection close was handled.");
 
         }
+
         @Override
         public void onError(Exception e) {
             e.printStackTrace();
@@ -126,15 +129,16 @@ public class ActionAPIServiceAPI {
 
     /**
      * Publishes an action to specified destination
+     *
      * @param action the action to publish
      * @return whether or not the action was successfully published, this does not mean delivered nor executed!
      */
-    public Success publishAction(Action action){
+    public Success publishAction(Action action) {
         try {
             HttpRequestWithBody req = Unirest.post("http://" + url("/action"));
             req.body(GSON.toJson(action));
             return GSON.fromJson(req.asString().getBody(), Success.class);
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
