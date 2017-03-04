@@ -57,7 +57,6 @@ public class RedisService implements Service {
             return new Success(false, "Tried to publish action without required 'meta' jsonobject parameter.");
         try {
             String[] channels = getChannels(action);
-            action.setType(null);//Type not required on publish
             action.setDestination(null);//destionation not required on publish
             return publishToJedis(channels, action);
         } catch (Exception e) {
