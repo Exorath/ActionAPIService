@@ -25,6 +25,7 @@ import com.mashape.unirest.request.HttpRequestWithBody;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
@@ -64,7 +65,7 @@ public class ActionAPIServiceAPI {
         private long nextPing;
         private long lastPong;
         public Client(Subscription subscription, URI uri){
-            super(uri);
+            super(uri, new Draft_17());
             this.subscription = subscription;
              subscription.getCompletable().subscribe(() -> {
                 this.close();
