@@ -29,6 +29,12 @@ public class Action {
     private String action;
     private JsonObject meta;
 
+
+    public Action(String subject, String destination, String action, JsonObject meta, boolean spigot) {
+        this(subject, destination, action, meta);
+        this.type = spigot ? "spigot" : "bungee";
+    }
+
     public Action(String subject, String destination, String action, JsonObject meta) {
         this.subject = subject;
         this.destination = destination;
